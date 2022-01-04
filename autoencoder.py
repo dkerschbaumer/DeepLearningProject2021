@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 
 PLOT = True
-USE_SAVED_MODEL = True
+USE_SAVED_MODEL = False
 
 class Autoencoder:
     def __init__(self, neurons, activation, input_size):
@@ -47,8 +47,8 @@ class Autoencoder:
             plt.legend()
             plt.show()
 
-        self.encoder.save('data/encoder.h5')
-        self.autoencoder.save('data/autoencoder.h5')
+        self.encoder.save('data/encoder/encoder.h5')
+        self.autoencoder.save('data/encoder/autoencoder.h5')
 
         return history
 
