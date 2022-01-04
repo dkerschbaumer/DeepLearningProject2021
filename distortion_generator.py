@@ -51,7 +51,7 @@ def distort(x, d):
     # mat.imshow(x, cmap='Greys')
     # mat.title(d)
     # mat.show()
-    return x
+    return num.rint(x).astype(num.uint8)
 
 
 """
@@ -92,6 +92,9 @@ for i in range(n_test):
         dist[4] = int(num.round(ran.random()))
     x_dist_test.append(distort(x_test[i], dist))
     d_dist_test.append(dist)
+
+x_dist = num.clip(x_dist, 0, 255)
+x_dist_test = num.clip(x_dist_test, 0, 255)
 
 num.save(path + 'X_kannada_MNIST_train_distorted.npy', x_dist)
 num.save(path + 'X_kannada_MNIST_test_distorted.npy', x_dist_test)
