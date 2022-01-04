@@ -4,8 +4,8 @@ import numpy.random as ran
 
 path = 'C:\\Users\\Felix\\PycharmProjects\\deeplearning\\Kannada_MNIST-master\\data\\output_tensors\\MNIST_format\\'
 
-x_train = num.load(path + 'X_kannada_MNIST_train.npy')
-x_test = num.load(path + 'X_kannada_MNIST_test.npy')
+x_train = num.load('data/repo-kannada-mnist/X_kannada_MNIST_train.npy')
+x_test = num.load('data/repo-kannada-mnist/X_kannada_MNIST_test.npy')
 
 # print(x_train.shape)
 # print(x_test.shape)
@@ -96,8 +96,8 @@ for i in range(n_test):
 x_dist = num.clip(x_dist, 0, 255)
 x_dist_test = num.clip(x_dist_test, 0, 255)
 
-num.save(path + 'X_kannada_MNIST_train_distorted.npy', x_dist)
-num.save(path + 'X_kannada_MNIST_test_distorted.npy', x_dist_test)
+num.save('data/distorted/X_kannada_MNIST_train_distorted.npy', x_dist)
+num.save('data/distorted/X_kannada_MNIST_test_distorted.npy', x_dist_test)
 
 d_all = num.concatenate((num.array(d_dist), num.array(d_dist_test)), axis=0)
 
