@@ -1,14 +1,25 @@
 import numpy as num
-# import matplotlib.pyplot as mat
+import pandas as pd
+import matplotlib.pyplot as mat
 import numpy.random as ran
+from sklearn.model_selection import train_test_split
 
-path = 'C:\\Users\\Felix\\PycharmProjects\\deeplearning\\Kannada_MNIST-master\\data\\output_tensors\\MNIST_format\\'
+# path = 'C:\\Users\\Felix\\PycharmProjects\\deeplearning\\Kannada_MNIST-master\\data\\output_tensors\\MNIST_format\\'
 
-x_train = num.load('data/repo-kannada-mnist/X_kannada_MNIST_train.npy')
-x_test = num.load('data/repo-kannada-mnist/X_kannada_MNIST_test.npy')
+# x_train_ = num.load('data/repo-kannada-mnist/X_kannada_MNIST_train.npy')
+# x_test_ = num.load('data/repo-kannada-mnist/X_kannada_MNIST_test.npy')
 
-# print(x_train.shape)
-# print(x_test.shape)
+train_ = pd.read_csv('data/train.csv')
+test_ = pd.read_csv('data/test.csv')
+
+x_train = train_.iloc[:, 1:].to_numpy()
+x_test = test_.iloc[:, 1:].to_numpy()
+
+x_train = x_train.reshape(-1, 28, 28)
+x_test = x_test.reshape(-1, 28, 28)
+
+print(x_train.shape)
+print(x_test.shape)
 
 n_train = x_train.shape[0]
 n_test = x_test.shape[0]
@@ -82,7 +93,7 @@ d_dist_test = []
 for i in range(n_train):
     dist = num.zeros(6)
     while max(dist) == 0:
-        dist[ran.randint(3)] = 1
+        dist[ran.randint(2)] = 1
         dist[3 + ran.randint(2)] = 1
         dist[5] = ran.randint(2)
     x_dist.append(distort(x_train[i], dist))
@@ -91,7 +102,7 @@ for i in range(n_train):
 for i in range(n_test):
     dist = num.zeros(6)
     while max(dist) == 0:
-        dist[ran.randint(3)] = 1
+        dist[ran.randint(2)] = 1
         dist[3 + ran.randint(2)] = 1
         dist[5] = ran.randint(2)
     x_dist_test.append(distort(x_test[i], dist))
@@ -100,13 +111,13 @@ for i in range(n_test):
 x_dist = num.rint(num.clip(x_dist, 0, 255)).astype(num.uint8)
 x_dist_test = num.rint(num.clip(x_dist_test, 0, 255)).astype(num.uint8)
 
-num.save(path + 'X_kannada_MNIST_train_distorted.npy', x_dist)
-num.save(path + 'X_kannada_MNIST_test_distorted.npy', x_dist_test)
+num.save('data/distorted/X_kannada_MNIST_train_distorted.npy', x_dist)
+num.save('data/distorted/X_kannada_MNIST_test_distorted.npy', x_dist_test)
 
 d_all = num.concatenate((num.array(d_dist), num.array(d_dist_test)), axis=0)
 
 # uncomment to view the distribution of distortions
-"""
+
 mat.hist(num.sum(d_all, axis=1))
 mat.title('number of distortions')
 mat.show()
@@ -122,4 +133,4 @@ for i in range(30):
     mat.imshow(x_dist[i], cmap='Greys')
     mat.title(d_dist[i])
     mat.show()
-"""
+
