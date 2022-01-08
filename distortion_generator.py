@@ -25,6 +25,7 @@ def distribute():
 def distort(x, d):
     # additive Gaussian noise on the input image, etc.
 
+    # mat.subplot(121)
     # mat.imshow(x, cmap='Greys')
 
     # flipping horizontally
@@ -36,22 +37,25 @@ def distort(x, d):
     # rotating
     if d[2]:
         x = num.rot90(x, k=ran.randint(1, 4))
-    # occlusion
+    # gaussian noise
     if d[3]:
+        x = x + ran.normal(loc=0.0, scale=20.0, size=(n_x, n_y))
+    # brightness
+    if d[4]:
+        xx, yy = num.meshgrid(num.arange(n_x), num.arange(n_y))
+        z = num.sqrt((xx - ran.randint(n_x)) ** 2 + (yy - ran.randint(n_y)) ** 2)
+        x = x + ran.randint(80) / (1 + 0.1 * z)
+    # occlusion
+    if d[5]:
         s = ran.randint([0, n_x / 4, 0, n_y / 4], [n_x / 2 + 1, n_x / 2 + 1, n_y / 2 + 1, n_y / 2 + 1])
         x[s[0]: s[0] + s[1], s[2]: s[2] + s[3]] = 255
-    # gaussian noise
-    if d[4]:
-        x = x + ran.normal(loc=0.0, scale=30.0, size=(n_x, n_y))
-    # brightness
-    if d[5]:
-        x = x * ran.rand()
 
     # mat.subplot(122)
     # mat.imshow(x, cmap='Greys')
     # mat.title(d)
     # mat.show()
-    return num.rint(x).astype(num.uint8)
+    return x
+
 
 
 """
@@ -68,8 +72,8 @@ mat.show()
 """
 
 
-distortions = ['left-right flip', 'up-down flip', 'rotation by 90°, 180°, or 270°',
-               'occlusion', 'gaussian noise', 'brightness gradient (unimplemented)']
+distortions = ['up-down flip', 'left-right flip', 'rotation by 90°, 180°, or 270°',
+               'gaussian noise', 'brightness gradient', 'occlusion']
 x_dist = []
 d_dist = []
 x_dist_test = []
@@ -79,8 +83,8 @@ for i in range(n_train):
     dist = num.zeros(6)
     while max(dist) == 0:
         dist[ran.randint(3)] = 1
-        dist[3] = int(num.round(ran.random()))
-        dist[4] = int(num.round(ran.random()))
+        dist[3 + ran.randint(2)] = 1
+        dist[5] = ran.randint(2)
     x_dist.append(distort(x_train[i], dist))
     d_dist.append(dist)
 
@@ -88,16 +92,16 @@ for i in range(n_test):
     dist = num.zeros(6)
     while max(dist) == 0:
         dist[ran.randint(3)] = 1
-        dist[3] = int(num.round(ran.random()))
-        dist[4] = int(num.round(ran.random()))
+        dist[3 + ran.randint(2)] = 1
+        dist[5] = ran.randint(2)
     x_dist_test.append(distort(x_test[i], dist))
     d_dist_test.append(dist)
 
-x_dist = num.clip(x_dist, 0, 255)
-x_dist_test = num.clip(x_dist_test, 0, 255)
+x_dist = num.rint(num.clip(x_dist, 0, 255)).astype(num.uint8)
+x_dist_test = num.rint(num.clip(x_dist_test, 0, 255)).astype(num.uint8)
 
-num.save('data/distorted/X_kannada_MNIST_train_distorted.npy', x_dist)
-num.save('data/distorted/X_kannada_MNIST_test_distorted.npy', x_dist_test)
+num.save(path + 'X_kannada_MNIST_train_distorted.npy', x_dist)
+num.save(path + 'X_kannada_MNIST_test_distorted.npy', x_dist_test)
 
 d_all = num.concatenate((num.array(d_dist), num.array(d_dist_test)), axis=0)
 
@@ -110,4 +114,12 @@ mat.hist(d_all, label=distortions)
 mat.title('type of distortions')
 mat.legend()
 mat.show()
+
+for i in range(30):
+    mat.subplot(121)
+    mat.imshow(x_train[i], cmap='Greys')
+    mat.subplot(122)
+    mat.imshow(x_dist[i], cmap='Greys')
+    mat.title(d_dist[i])
+    mat.show()
 """
