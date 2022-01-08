@@ -118,7 +118,8 @@ def main():
     y_train_ = pd.read_csv('data/train.csv').iloc[:, 0].to_numpy()
     y_test_ = pd.read_csv('data/test.csv').iloc[:, 0].to_numpy()
 
-    x_train_norm = np.load('data/repo-kannada-mnist/X_kannada_MNIST_train.npy')
+    x_train_norm = pd.read_csv('data/train.csv').iloc[:, 1:].to_numpy()
+    x_train_norm = x_train_norm.reshape(-1, 28, 28)
     x_train_norm = x_train_norm.astype("float32") / 255
     x_train_norm = x_train_norm.reshape(len(x_train_norm), 28, 28, 1)
 
