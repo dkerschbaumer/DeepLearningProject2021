@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
+from sklearn.model_selection import ParameterGrid
+
 
 PLOT = True
 USE_SAVED_MODEL = False
@@ -22,9 +24,47 @@ class Autoencoder:
         self.autoencoder = None
         pass
 
-    def createModel(self):
+    def createModel(self, layer_type, nr_layers, loss_func):
         # ENCODER
         encoder_input = keras.Input(shape=(self.input_size, self.input_size, 1), name='Image Import')
+
+        if layer_type == 'dense':
+            hidden1 = keras.layers.Flatten()(encoder_input)  # converts from 2d (30x30) to 1d (900)
+            encoded = keras.layers.Dense(512, activation='relu')(hidden1)
+            encoded = keras.layers.Dense(512, activation='relu')(encoded)
+            for i in range(2, nr_layers):
+                encoded = keras.layers.Dense(256, activation='relu')(encoded)
+            encoder_output = keras.layers.Dense(self.neurons, activation=self.activation)(encoded)
+            self.encoder = keras.Model(encoder_input, encoder_output, name='encoder')
+
+            decoder_input = keras.layers.Dense(self.full_size, activation='sigmoid')(encoder_output)
+            decoder_output = keras.layers.Reshape((self.input_size, self.input_size, 1))(decoder_input)
+        else:
+            encoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoder_input)
+            encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
+            for i in range(1, nr_layers):
+                encoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
+                encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
+            # encoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
+            encoded = keras.layers.Flatten()(encoded)
+            encoded = keras.layers.Dense(784, activation='softmax')(encoded)
+
+            # decoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
+            # decoded = keras.layers.UpSampling2D((2, 2))(decoded)
+            # decoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
+            # decoded = keras.layers.UpSampling2D((2, 2))(decoded)
+            decoded = keras.layers.Reshape((28, 28, 1))(encoded)
+            decoded = keras.layers.Conv2DTranspose(self.neurons, (3, 3), activation=self.activation, padding='same')(decoded)
+            decoded = keras.layers.BatchNormalization()(decoded)
+            for i in range(1, nr_layers):
+                decoded = keras.layers.Conv2DTranspose(self.neurons, (3, 3), activation=self.activation, padding='same')(decoded)
+                decoded = keras.layers.BatchNormalization()(decoded)
+            decoder_output = keras.layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(decoded)
+
+        self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
+
+        self.autoencoder.summary()
+        self.autoencoder.compile(optimizer='Adam', loss=loss_func, metrics=['accuracy'])
 
         # encoded = keras.layers.Conv2D(32, (3, 3), activation=self.activation, padding='same')(encoder_input)
         # encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
@@ -38,22 +78,19 @@ class Autoencoder:
         # decoder_output = keras.layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(decoded)
         # self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
 
-        hidden1 = keras.layers.Flatten()(encoder_input)  # converts from 2d (30x30) to 1d (900)
-        encoded = keras.layers.Dense(512, activation='relu')(hidden1)
-        encoded = keras.layers.Dense(512, activation='relu')(encoded)
-        encoded = keras.layers.Dense(256, activation='relu')(encoded)
-        encoded = keras.layers.Dense(256, activation='relu')(encoded)
+        # hidden1 = keras.layers.Flatten()(encoder_input)  # converts from 2d (30x30) to 1d (900)
+        # encoded = keras.layers.Dense(512, activation='relu')(hidden1)
+        # encoded = keras.layers.Dense(512, activation='relu')(encoded)
+        # encoded = keras.layers.Dense(256, activation='relu')(encoded)
+        # encoded = keras.layers.Dense(256, activation='relu')(encoded)
 
-        encoder_output = keras.layers.Dense(self.neurons, activation=self.activation)(encoded)
-        self.encoder = keras.Model(encoder_input, encoder_output, name='encoder')  # not sure if we need it really
+        # encoder_output = keras.layers.Dense(self.neurons, activation=self.activation)(encoded)
+        # self.encoder = keras.Model(encoder_input, encoder_output, name='encoder')  # not sure if we need it really
 
         # DECODER
-        decoder_input = keras.layers.Dense(self.full_size, activation='sigmoid')(encoder_output)
-        decoder_output = keras.layers.Reshape((self.input_size, self.input_size, 1))(decoder_input)
-        self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
-
-        self.autoencoder.summary()
-        self.autoencoder.compile(optimizer='Adam', loss='binary_crossentropy', metrics=['accuracy'])
+        # decoder_input = keras.layers.Dense(self.full_size, activation='sigmoid')(encoder_output)
+        # decoder_output = keras.layers.Reshape((self.input_size, self.input_size, 1))(decoder_input)
+        # self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
         # self.autoencoder.compile(optimizer='Adam', loss='mse', metrics=['accuracy'])
 
     def train(self, distorted_input, clean_input, validation_distorted, validation_clean, batch_size, epochs):
@@ -110,6 +147,49 @@ def preprocessing(x_train, y_train, x_test, y_test):
     return x_train, y_train, x_test, y_test
 
 
+def findBestHyperParameters(parameters, x_train, x_train_norm, x_val, x_val_norm):
+    hyperparameters = list(ParameterGrid(parameters))
+    comb_list = []
+
+    for parameter in hyperparameters:
+        nr_layers = parameter['nr_layers']
+        nr_neurons = parameter['nr_neurons']
+        layer_type = parameter['layer_type']
+        loss_func = parameter['loss_func']
+
+        autoencoder = Autoencoder(neurons=nr_neurons, activation='relu', input_size=28)
+
+        autoencoder.createModel(layer_type, nr_layers, loss_func)
+
+        print(nr_layers)
+        print(nr_neurons)
+        print(layer_type)
+        print(loss_func)
+
+        history = autoencoder.train(x_train, x_train_norm, x_val, x_val_norm, batch_size=32, epochs=20)
+
+        print(history)
+
+        entry = {
+            'nr_layers': nr_layers,
+            'nr_neurons': nr_neurons,
+            'layer_type': layer_type,
+            'loss_func': loss_func,
+            'loss': history.history['loss'],
+            'val_loss': history.history['val_loss'],
+            'acc': history.history['accuracy'],
+            'val_acc': history.history['val_accuracy'],
+        }
+        comb_list.append(entry)
+
+    best_comb = {}
+    for entry in comb_list:
+        if not best_comb or best_comb['val_acc'] > entry['val_acc']:
+            best_comb = entry
+
+    return best_comb
+
+
 def main():
     # (x_train, y_train), (x_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
 
@@ -129,13 +209,26 @@ def main():
     x_train_norm, x_val_norm, y_train_norm, y_val_norm = train_test_split(x_train_norm, y_train_proc, test_size=0.2,
                                                                           random_state=0)
 
+    parameters = {
+        'layer_type':  ['dense', 'conv'],
+        'nr_layers':  [2, 3, 4],
+        'nr_neurons': [32, 64, 128],
+        'loss_func': ['binary_crossentropy', 'mse'],
+    }
+
+    best_hyperparameters = findBestHyperParameters(parameters, x_train, x_train_norm, x_val, x_val_norm)
+
+    print(best_hyperparameters)
+
     autoencoder = Autoencoder(neurons=64, activation='relu', input_size=28)
-    if USE_SAVED_MODEL:
-        autoencoder.autoencoder = load_model('data/autoencoder.h5')
-        autoencoder.encoder = load_model('data/encoder.h5')
-    else:
-        autoencoder.createModel()
-        autoencoder.train(x_train, x_train_norm, x_val, x_val_norm, batch_size=32, epochs=20)
+    autoencoder.createModel(best_hyperparameters['layer_type'], best_hyperparameters['nr_layers'], best_hyperparameters['loss_func'])
+    autoencoder.train(x_train, x_train_norm, x_val, x_val_norm, batch_size=32, epochs=20)
+
+    # best combination, but does not look good:
+    # nr_layers 3
+    # nr_neurons 128
+    # layer_type conv
+    # loss_func binary_crossentropy
 
     autoencoder.predictExample(x_train[0])
     plt.imshow(x_train[0], cmap='gray')
@@ -146,6 +239,12 @@ def main():
     plt.title("clean version  ")
     plt.show()
 
+    # if USE_SAVED_MODEL:
+    #    autoencoder.autoencoder = load_model('data/autoencoder.h5')
+    #    autoencoder.encoder = load_model('data/encoder.h5')
+    # else:
+    #    autoencoder.createModel()
+    #    autoencoder.train(x_train, x_train_norm, x_val, x_val_norm, batch_size=32, epochs=20)
     pass
 
 
