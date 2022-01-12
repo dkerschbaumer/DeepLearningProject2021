@@ -7,10 +7,9 @@ from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 from sklearn.model_selection import ParameterGrid
-
+from tensorflow.python.keras.callbacks import EarlyStopping
 
 PLOT = True
-USE_SAVED_MODEL = False
 
 
 class Autoencoder:
@@ -24,47 +23,52 @@ class Autoencoder:
         self.autoencoder = None
         pass
 
-    def createModel(self, layer_type, nr_layers, loss_func):
-        # ENCODER
+    def createDenseModel(self, nr_layers, loss_func):
+
         encoder_input = keras.Input(shape=(self.input_size, self.input_size, 1), name='Image Import')
+        hidden1 = keras.layers.Flatten()(encoder_input)  # converts from 2d (30x30) to 1d (900)
+        encoded = keras.layers.Dense(512, activation='relu')(hidden1)
+        encoded = keras.layers.Dense(512, activation='relu')(encoded)
+        for i in range(2, nr_layers):
+            encoded = keras.layers.Dense(256, activation='relu')(encoded)
+        encoder_output = keras.layers.Dense(self.neurons, activation=self.activation)(encoded)
+        self.encoder = keras.Model(encoder_input, encoder_output, name='encoder')
 
-        if layer_type == 'dense':
-            hidden1 = keras.layers.Flatten()(encoder_input)  # converts from 2d (30x30) to 1d (900)
-            encoded = keras.layers.Dense(512, activation='relu')(hidden1)
-            encoded = keras.layers.Dense(512, activation='relu')(encoded)
-            for i in range(2, nr_layers):
-                encoded = keras.layers.Dense(256, activation='relu')(encoded)
-            encoder_output = keras.layers.Dense(self.neurons, activation=self.activation)(encoded)
-            self.encoder = keras.Model(encoder_input, encoder_output, name='encoder')
-
-            decoder_input = keras.layers.Dense(self.full_size, activation='sigmoid')(encoder_output)
-            decoder_output = keras.layers.Reshape((self.input_size, self.input_size, 1))(decoder_input)
-        else:
-            encoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoder_input)
-            encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
-            for i in range(1, nr_layers):
-                encoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
-                encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
-            # encoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
-            encoded = keras.layers.Flatten()(encoded)
-            encoded = keras.layers.Dense(784, activation='softmax')(encoded)
-
-            # decoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
-            # decoded = keras.layers.UpSampling2D((2, 2))(decoded)
-            # decoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
-            # decoded = keras.layers.UpSampling2D((2, 2))(decoded)
-            decoded = keras.layers.Reshape((28, 28, 1))(encoded)
-            decoded = keras.layers.Conv2DTranspose(self.neurons, (3, 3), activation=self.activation, padding='same')(decoded)
-            decoded = keras.layers.BatchNormalization()(decoded)
-            for i in range(1, nr_layers):
-                decoded = keras.layers.Conv2DTranspose(self.neurons, (3, 3), activation=self.activation, padding='same')(decoded)
-                decoded = keras.layers.BatchNormalization()(decoded)
-            decoder_output = keras.layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(decoded)
+        decoder_input = keras.layers.Dense(self.full_size, activation='sigmoid')(encoder_output)
+        decoder_output = keras.layers.Reshape((self.input_size, self.input_size, 1))(decoder_input)
 
         self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
-
         self.autoencoder.summary()
         self.autoencoder.compile(optimizer='Adam', loss=loss_func, metrics=['accuracy'])
+
+
+
+    def createConvolutionalModel(self, nr_layers, loss_func):
+        encoder_input = keras.Input(shape=(self.input_size, self.input_size, 1), name='Image Import')
+
+        encoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoder_input)
+        encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
+        for i in range(1, nr_layers):
+            encoded = keras.layers.Conv2D(self.neurons, (3, 3), activation=self.activation, padding='same')(encoded)
+            encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
+        encoded = keras.layers.Flatten()(encoded)
+        encoded = keras.layers.Dense(784, activation='softmax')(encoded)
+
+        decoded = keras.layers.Reshape((28, 28, 1))(encoded)
+        decoded = keras.layers.Conv2DTranspose(self.neurons, (3, 3), activation=self.activation, padding='same')(
+            decoded)
+        decoded = keras.layers.BatchNormalization()(decoded)
+        for i in range(1, nr_layers):
+            decoded = keras.layers.Conv2DTranspose(self.neurons, (3, 3), activation=self.activation, padding='same')(
+                decoded)
+            decoded = keras.layers.BatchNormalization()(decoded)
+        decoder_output = keras.layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(decoded)
+
+        self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
+        self.autoencoder.summary()
+        self.autoencoder.compile(optimizer='Adam', loss=loss_func, metrics=['accuracy'])
+
+    def createModel(self, layer_type, nr_layers, loss_func):
 
         # encoded = keras.layers.Conv2D(32, (3, 3), activation=self.activation, padding='same')(encoder_input)
         # encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
@@ -77,6 +81,8 @@ class Autoencoder:
         # decoded = keras.layers.UpSampling2D((2, 2))(decoded)
         # decoder_output = keras.layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(decoded)
         # self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
+
+
 
         # hidden1 = keras.layers.Flatten()(encoder_input)  # converts from 2d (30x30) to 1d (900)
         # encoded = keras.layers.Dense(512, activation='relu')(hidden1)
@@ -92,23 +98,46 @@ class Autoencoder:
         # decoder_output = keras.layers.Reshape((self.input_size, self.input_size, 1))(decoder_input)
         # self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
         # self.autoencoder.compile(optimizer='Adam', loss='mse', metrics=['accuracy'])
+        pass
 
-    def train(self, distorted_input, clean_input, validation_distorted, validation_clean, batch_size, epochs):
-        history = self.autoencoder.fit(distorted_input, clean_input, epochs=epochs, batch_size=batch_size, shuffle=True,
-                                       validation_data=(validation_distorted, validation_clean))
+    def train(self, x_train_dist, x_train_clean, x_val_dist, x_val_clean, batch_size, epochs, validation_set = True):
+
+
+        if validation_set:
+            early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
+            history = self.autoencoder.fit(x_train_dist, x_train_clean, epochs=epochs, batch_size=batch_size, shuffle=True,
+                                           validation_data=(x_val_dist, x_val_clean),callbacks=[early_stopping])
+
+        else:
+            early_stopping = EarlyStopping(monitor='loss', min_delta=0, patience=10, verbose=0, mode='auto')
+            history = self.autoencoder.fit(x_train_dist, x_train_clean, epochs=epochs, batch_size=batch_size, shuffle=True,
+                                           callbacks=[early_stopping])
         if PLOT:
             plt.plot(history.history['loss'], label='train')
-            plt.plot(history.history['val_loss'], label='val')
+            if validation_set:
+                plt.plot(history.history['val_loss'], label='val')
+            plt.title("Loss")
             plt.legend()
             plt.show()
+
+            plt.plot(history.history['accuracy'], label='train')
+            if validation_set:
+                plt.plot(history.history['val_accuracy'], label='val')
+            plt.title("Accuracy")
+            plt.legend()
+            plt.show()
+
+
 
         # self.encoder.save('data/encoder/encoder.h5')
         self.autoencoder.save('data/encoder/autoencoder.h5')
 
         return history
 
-    def evaluate(self):
-        # todo check here if the model works well - accuracy score
+    def evaluate(self, x_test, y_test):
+        results = self.autoencoder.evaluate(x_test, y_test)
+        print("test loss, test acc:", results)
+
         pass
 
     # example call: autoencoder.predictExample(x_train[0])
@@ -129,124 +158,3 @@ class Autoencoder:
         plt.title("Encoder example " + str(size) + 'x' + str(size))
         plt.show()
 
-
-def preprocessing(x_train, y_train, x_test, y_test):
-    # normalize data in [0,1] range
-    x_train = x_train.astype("float32") / 255
-    x_test = x_test.astype("float32") / 255
-
-    # todo adapt to our dataset
-    # reshape for NN
-    x_train = x_train.reshape(len(x_train), 28, 28, 1)
-    x_test = x_test.reshape(len(x_test), 28, 28, 1)
-
-    # change y sets to one-hot-encoding
-    y_train = keras.utils.to_categorical(y_train)
-    y_test = keras.utils.to_categorical(y_test)
-
-    return x_train, y_train, x_test, y_test
-
-
-def findBestHyperParameters(parameters, x_train, x_train_norm, x_val, x_val_norm):
-    hyperparameters = list(ParameterGrid(parameters))
-    comb_list = []
-
-    for parameter in hyperparameters:
-        nr_layers = parameter['nr_layers']
-        nr_neurons = parameter['nr_neurons']
-        layer_type = parameter['layer_type']
-        loss_func = parameter['loss_func']
-
-        autoencoder = Autoencoder(neurons=nr_neurons, activation='relu', input_size=28)
-
-        autoencoder.createModel(layer_type, nr_layers, loss_func)
-
-        print(nr_layers)
-        print(nr_neurons)
-        print(layer_type)
-        print(loss_func)
-
-        history = autoencoder.train(x_train, x_train_norm, x_val, x_val_norm, batch_size=32, epochs=20)
-
-        print(history)
-
-        entry = {
-            'nr_layers': nr_layers,
-            'nr_neurons': nr_neurons,
-            'layer_type': layer_type,
-            'loss_func': loss_func,
-            'loss': history.history['loss'],
-            'val_loss': history.history['val_loss'],
-            'acc': history.history['accuracy'],
-            'val_acc': history.history['val_accuracy'],
-        }
-        comb_list.append(entry)
-
-    best_comb = {}
-    for entry in comb_list:
-        if not best_comb or best_comb['val_acc'] > entry['val_acc']:
-            best_comb = entry
-
-    return best_comb
-
-
-def main():
-    # (x_train, y_train), (x_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
-
-    x_train_dist = np.load('data/distorted/X_kannada_MNIST_train_distorted.npy')
-    x_test_dist = np.load('data/distorted/X_kannada_MNIST_test_distorted.npy')
-    y_train_ = pd.read_csv('data/train.csv').iloc[:, 0].to_numpy()
-    y_test_ = pd.read_csv('data/test.csv').iloc[:, 0].to_numpy()
-
-    x_train_norm = pd.read_csv('data/train.csv').iloc[:, 1:].to_numpy()
-    x_train_norm = x_train_norm.reshape(-1, 28, 28)
-    x_train_norm = x_train_norm.astype("float32") / 255
-    x_train_norm = x_train_norm.reshape(len(x_train_norm), 28, 28, 1)
-
-    x_train, y_train_proc, x_test, y_test = preprocessing(x_train_dist, y_train_, x_test_dist, y_test_)
-    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train_proc, test_size=0.2, random_state=0)
-
-    x_train_norm, x_val_norm, y_train_norm, y_val_norm = train_test_split(x_train_norm, y_train_proc, test_size=0.2,
-                                                                          random_state=0)
-
-    parameters = {
-        'layer_type':  ['dense', 'conv'],
-        'nr_layers':  [2, 3, 4],
-        'nr_neurons': [32, 64, 128],
-        'loss_func': ['binary_crossentropy', 'mse'],
-    }
-
-    best_hyperparameters = findBestHyperParameters(parameters, x_train, x_train_norm, x_val, x_val_norm)
-
-    print(best_hyperparameters)
-
-    autoencoder = Autoencoder(neurons=64, activation='relu', input_size=28)
-    autoencoder.createModel(best_hyperparameters['layer_type'], best_hyperparameters['nr_layers'], best_hyperparameters['loss_func'])
-    autoencoder.train(x_train, x_train_norm, x_val, x_val_norm, batch_size=32, epochs=20)
-
-    # best combination, but does not look good:
-    # nr_layers 3
-    # nr_neurons 128
-    # layer_type conv
-    # loss_func binary_crossentropy
-
-    autoencoder.predictExample(x_train[0])
-    plt.imshow(x_train[0], cmap='gray')
-    plt.title("distorted version  ")
-    plt.show()
-
-    plt.imshow(x_train_norm[0], cmap='gray')
-    plt.title("clean version  ")
-    plt.show()
-
-    # if USE_SAVED_MODEL:
-    #    autoencoder.autoencoder = load_model('data/autoencoder.h5')
-    #    autoencoder.encoder = load_model('data/encoder.h5')
-    # else:
-    #    autoencoder.createModel()
-    #    autoencoder.train(x_train, x_train_norm, x_val, x_val_norm, batch_size=32, epochs=20)
-    pass
-
-
-if __name__ == "__main__":
-    main()

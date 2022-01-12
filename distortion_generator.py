@@ -6,11 +6,11 @@ from sklearn.model_selection import train_test_split
 
 # path = 'C:\\Users\\Felix\\PycharmProjects\\deeplearning\\Kannada_MNIST-master\\data\\output_tensors\\MNIST_format\\'
 
-# x_train_ = num.load('data/repo-kannada-mnist/X_kannada_MNIST_train.npy')
-# x_test_ = num.load('data/repo-kannada-mnist/X_kannada_MNIST_test.npy')
+# x_train = num.load('data/repo-kannada-mnist/X_kannada_MNIST_train.npy')
+# x_test = num.load('data/repo-kannada-mnist/X_kannada_MNIST_test.npy')
 
 train_ = pd.read_csv('data/train.csv')
-test_ = pd.read_csv('data/test.csv')
+test_ = pd.read_csv('data/Dig-MNIST.csv') # the test set does not contain a label, which makes it useless for us for evaluation, we use Dig-MNIST for test set
 
 x_train = train_.iloc[:, 1:].to_numpy()
 x_test = test_.iloc[:, 1:].to_numpy()
@@ -90,29 +90,63 @@ d_dist = []
 x_dist_test = []
 d_dist_test = []
 
-for i in range(n_train):
-    dist = num.zeros(6)
-    while max(dist) == 0:
-        dist[ran.randint(2)] = 1
-        dist[3 + ran.randint(2)] = 1
-        dist[5] = ran.randint(2)
-    x_dist.append(distort(x_train[i], dist))
-    d_dist.append(dist)
 
-for i in range(n_test):
-    dist = num.zeros(6)
-    while max(dist) == 0:
-        dist[ran.randint(2)] = 1
-        dist[3 + ran.randint(2)] = 1
-        dist[5] = ran.randint(2)
-    x_dist_test.append(distort(x_test[i], dist))
-    d_dist_test.append(dist)
+def addDistortion3(x_dist_full):
+    x_dist = []
+    x_dist_test = []
+    for i in range(n_train):
+        dist = num.zeros(6)
+        while max(dist) == 0:
+            dist[ran.randint(2)] = 1
+            dist[3 + ran.randint(2)] = 1
+            dist[5] = ran.randint(2)
+        x_dist.append(distort(x_train[i], dist))
+        d_dist.append(dist)
 
-x_dist = num.rint(num.clip(x_dist, 0, 255)).astype(num.uint8)
-x_dist_test = num.rint(num.clip(x_dist_test, 0, 255)).astype(num.uint8)
+    for i in range(n_test):
+        dist = num.zeros(6)
+        while max(dist) == 0:
+            dist[ran.randint(2)] = 1
+            dist[3 + ran.randint(2)] = 1
+            dist[5] = ran.randint(2)
+        x_dist_test.append(distort(x_test[i], dist))
+        d_dist_test.append(dist)
 
-num.save('data/distorted/X_kannada_MNIST_train_distorted.npy', x_dist)
-num.save('data/distorted/X_kannada_MNIST_test_distorted.npy', x_dist_test)
+    x_dist = num.rint(num.clip(x_dist, 0, 255)).astype(num.uint8)
+    x_dist_test = num.rint(num.clip(x_dist_test, 0, 255)).astype(num.uint8)
+
+    num.save('data/distorted/X_kannada_MNIST_train_multipl_distorted.npy', x_dist)
+    num.save('data/distorted/X_kannada_MNIST_test_multipl_distorted.npy', x_dist_test)
+    x_dist_full.extend(x_dist)
+
+
+def addDistortion1(x_dist_full):
+    x_dist = []
+    x_dist_test = []
+    for i in range(n_train):
+        dist = num.zeros(6)
+        while max(dist) == 0:
+            dist[ran.randint(6)] = 1
+        x_dist.append(distort(x_train[i], dist))
+        d_dist.append(dist)
+
+    for i in range(n_test):
+        dist = num.zeros(6)
+        while max(dist) == 0:
+            dist[ran.randint(6)] = 1
+        x_dist_test.append(distort(x_test[i], dist))
+        d_dist_test.append(dist)
+
+    x_dist = num.rint(num.clip(x_dist, 0, 255)).astype(num.uint8)
+    x_dist_test = num.rint(num.clip(x_dist_test, 0, 255)).astype(num.uint8)
+
+    num.save('data/distorted/X_kannada_MNIST_train_single_distorted.npy', x_dist)
+    num.save('data/distorted/X_kannada_MNIST_test_single_distorted.npy', x_dist_test)
+    x_dist_full.extend(x_dist)
+
+addDistortion3(x_dist)
+addDistortion1(x_dist)
+
 
 d_all = num.concatenate((num.array(d_dist), num.array(d_dist_test)), axis=0)
 
