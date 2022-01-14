@@ -10,7 +10,7 @@ from tensorflow.keras.models import load_model
 from sklearn.model_selection import ParameterGrid
 
 
-USE_SAVED_MODEL = False
+USE_SAVED_MODEL = True
 
 
 def normalizeAndReshape(data):
@@ -132,8 +132,8 @@ def plotEvaluation(autoencoder, x_test_dist, x_test_clean, y_test_clean):
 def main():
 
     # disturbed data set
-    x_train_dist_full = np.load('data/distorted/X_kannada_MNIST_train_single_distorted.npy')
-    x_test_dist = np.load('data/distorted/X_kannada_MNIST_test_single_distorted.npy')
+    x_train_dist_full = np.load('data/distorted/X_kannada_MNIST_train_multipl_distorted.npy')
+    x_test_dist = np.load('data/distorted/X_kannada_MNIST_test_multipl_distorted.npy')
     x_train_dist_full = normalizeAndReshape(x_train_dist_full)
     x_test_dist = normalizeAndReshape(x_test_dist)
 
@@ -163,7 +163,7 @@ def main():
 
     autoencoder = Autoencoder(neurons=64, activation='relu', input_size=28)
     if USE_SAVED_MODEL:
-       autoencoder.autoencoder = load_model('data/encoder/autoencoder.h5')
+       autoencoder.autoencoder = load_model('data/models/autoencoder.h5')
 
     else:
 

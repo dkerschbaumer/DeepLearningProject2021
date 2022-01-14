@@ -129,8 +129,7 @@ class Autoencoder:
 
 
 
-        # self.encoder.save('data/encoder/encoder.h5')
-        self.autoencoder.save('data/encoder/autoencoder.h5')
+        self.autoencoder.save('data/models/autoencoder.h5')
 
         return history
 
