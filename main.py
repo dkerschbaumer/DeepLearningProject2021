@@ -10,7 +10,7 @@ from tensorflow.keras.models import load_model
 from sklearn.model_selection import ParameterGrid
 
 
-USE_SAVED_MODEL = True
+USE_SAVED_MODEL = False
 
 
 def normalizeAndReshape(data):
@@ -84,6 +84,8 @@ def createAndTrainModel(best_hyperparameters, x_train_dist, x_train_clean):
         autoencoder.createConvolutionalModel(best_hyperparameters['nr_layers'], best_hyperparameters['loss_func'])
 
     autoencoder.train(x_train_dist, x_train_clean, None, None, batch_size=32, epochs=20, validation_set=False)
+
+
     return autoencoder
 
 
@@ -92,10 +94,16 @@ def printImg(img, title):
     plt.title(title + str(img.shape))
     plt.show()
 
+def createPredictionImages(autoencoder, x, title):
+    prediction = predict(autoencoder, x)
+    np.save('data/reconstructed/X_kannada_MNIST_' + title + '.npy', prediction)
 
-def plotEvaluation(autoencoder, x_test_dist, x_test_clean, y_test_clean):
+def predict(autoencoder, data):
+    return autoencoder.autoencoder.predict(data)
 
-    prediction = autoencoder.autoencoder.predict(x_test_dist)
+
+
+def plotEvaluation(x_distorted, x_clean, y, x_reconstructed):
 
     # plot side descriptions of the dataset
     plt.figure(figsize=(20, 4))
@@ -114,17 +122,17 @@ def plotEvaluation(autoencoder, x_test_dist, x_test_clean, y_test_clean):
     for i in range(0, 10, 1):
         # plot original data
         plt.subplot(3, 11, i + 2)
-        plt.imshow(x_test_clean[i, :, :], cmap='Greys')
-        curr_lbl = y_test_clean[i]
+        plt.imshow(x_clean[i, :, :], cmap='Greys')
+        curr_lbl = y[i]
         plt.title("(Label: " + str(curr_lbl) + ")")
 
         # plot distorted data
         plt.subplot(3, 11, i + 13)
-        plt.imshow(x_test_dist[i, :, :], cmap='Greys')
+        plt.imshow(x_distorted[i, :, :], cmap='Greys')
 
         # plot reconstructed data
         plt.subplot(3, 11, i + 24)
-        plt.imshow(prediction[i, :, :], cmap='Greys')
+        plt.imshow(x_reconstructed[i, :, :], cmap='Greys')
 
     plt.show()
 
@@ -186,8 +194,9 @@ def main():
         autoencoder = createAndTrainModel(best_hyperparameters, x_train_dist_full, x_train_clean_full)
 
 
-    autoencoder.evaluate(x_test_dist, x_test_clean)
-    plotEvaluation(autoencoder, x_test_dist, x_test_clean, y_test_clean)
+    x_test_reconstructed = predict(autoencoder, x_test_dist)
+    plotEvaluation(x_test_dist, x_test_clean, y_test_clean, x_test_reconstructed)
+    createPredictionImages(autoencoder, x_train_dist_full, "x_train_reconstructed")
 
 if __name__ == "__main__":
     main()
