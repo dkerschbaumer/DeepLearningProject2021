@@ -67,7 +67,7 @@ def fitModel(x_train, y_train, x_val, y_val):
 
 def normalizeAndReshape(data):
     data = data.astype("float32") / 255
-    data = data.reshape(len(data), 28, 28)
+    data = data.reshape(len(data), 28, 28, 1)
     return data
 
 def toCategorical(data):
@@ -98,7 +98,7 @@ def train():
 
 def evaluate(model):
     print("start evaluation")
-
+    dataset_accuracies = {}
 
     x_train_clean =  pd.read_csv('data/train.csv').iloc[:, 1:].to_numpy() # clean dataset
     y_train = pd.read_csv('data/train.csv').iloc[:, 0].to_numpy() # label of the image is the same also for distroted set
@@ -107,7 +107,7 @@ def evaluate(model):
 
     result  = model.evaluate(x_train_clean, y_train_one_hot)
     print("clean training set loss && acc", result)
-
+    dataset_accuracies['original'] = result[1]
 
     #------------------------------------------------------------
 
@@ -115,18 +115,49 @@ def evaluate(model):
     x_train_dist = normalizeAndReshape(x_train_dist)
 
     result  = model.evaluate(x_train_dist, y_train_one_hot)
-    print("distorted training set loss && acc", result)
+    print("multiple distorted training set loss && acc", result)
+    dataset_accuracies['multiple distorted'] = result[1]
 
     #------------------------------------------------------------
 
-    x_train_reconstructed = np.load('data/reconstructed/X_kannada_MNIST_x_train_reconstructed.npy')
+    x_train_dist = np.load('data/distorted/X_kannada_MNIST_train_single_distorted.npy')
+    x_train_dist = normalizeAndReshape(x_train_dist)
+
+    result  = model.evaluate(x_train_dist, y_train_one_hot)
+    print("single distorted training set loss && acc", result)
+    dataset_accuracies['single distorted'] = result[1]
+
+    #------------------------------------------------------------
+
+    x_train_reconstructed = np.load('data/reconstructed/X_kannada_MNIST_x_train_multiple_reconstructed.npy')
     # x_train_reconstructed = normalizeAndReshape(x_train_reconstructed) # normalization not neccessary because data is already normalized and reshaped
     result  = model.evaluate(x_train_reconstructed, y_train_one_hot)
     print("reconstructed training set loss && acc", result)
+    dataset_accuracies['reconstructed'] = result[1]
+
+    plotPies(dataset_accuracies)
 
     print("finish evaluation")
 
-USE_SAFED_EVALUATION_MODEL = False
+
+def plotPies(accuracies):
+
+    for name, acc in accuracies.items():
+        acc = acc * 100
+        # Pie chart, where the slices will be ordered and plotted counter-clockwise:
+        labels = 'Correct', 'Incorrect'
+        sizes = [acc, 100 - acc]
+
+        colors = ['#00e600', '#ff0000']
+        fig1, ax1 = plt.subplots()
+        ax1.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, colors=colors)
+        ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+        plt.title("Accuracy of " + name + " dataset")
+        # plt.show()
+        plt.savefig("data/plots/accuracy_pie_"+name+".png", bbox_inches='tight')
+
+
+USE_SAFED_EVALUATION_MODEL = True
 def main():
 
     model = None

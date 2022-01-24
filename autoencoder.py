@@ -128,8 +128,9 @@ class Autoencoder:
             plt.show()
 
 
-
-        self.autoencoder.save('data/models/autoencoder.h5')
+        title = 'data/models/autoencoder.h5'
+        self.autoencoder.save(title)
+        print("saving model to ", title)
 
         return history
 

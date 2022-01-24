@@ -10,7 +10,7 @@ from tensorflow.keras.models import load_model
 from sklearn.model_selection import ParameterGrid
 
 
-USE_SAVED_MODEL = False
+USE_SAVED_MODEL = True
 
 
 def normalizeAndReshape(data):
@@ -139,11 +139,15 @@ def plotEvaluation(x_distorted, x_clean, y, x_reconstructed):
 
 def main():
 
-    # disturbed data set
+    # multiple disturbed data set
     x_train_dist_full = np.load('data/distorted/X_kannada_MNIST_train_multipl_distorted.npy')
     x_test_dist = np.load('data/distorted/X_kannada_MNIST_test_multipl_distorted.npy')
     x_train_dist_full = normalizeAndReshape(x_train_dist_full)
     x_test_dist = normalizeAndReshape(x_test_dist)
+
+    # single disturbed data set
+    x_train_dist_single = np.load('data/distorted/X_kannada_MNIST_train_single_distorted.npy')
+    x_train_dist_single = normalizeAndReshape(x_train_dist_full)
 
     # clean data set
     x_train_clean_full = pd.read_csv('data/train.csv').iloc[:, 1:].to_numpy() # clean dataset
@@ -194,9 +198,10 @@ def main():
         autoencoder = createAndTrainModel(best_hyperparameters, x_train_dist_full, x_train_clean_full)
 
 
-    x_test_reconstructed = predict(autoencoder, x_test_dist)
-    plotEvaluation(x_test_dist, x_test_clean, y_test_clean, x_test_reconstructed)
-    createPredictionImages(autoencoder, x_train_dist_full, "x_train_reconstructed")
+    # x_test_reconstructed = predict(autoencoder, x_test_dist)
+    # plotEvaluation(x_test_dist, x_test_clean, y_test_clean, x_test_reconstructed)
+    createPredictionImages(autoencoder, x_train_dist_full, "x_train_multiple_reconstructed")
+    createPredictionImages(autoencoder, x_train_dist_single, "x_train_single_reconstructed")
 
 if __name__ == "__main__":
     main()
