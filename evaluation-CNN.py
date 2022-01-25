@@ -7,6 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 ## This file is only for evaluation purpose
 # it uses the CNN from Assignment3 of David Kerschbaumer
@@ -130,15 +131,28 @@ def evaluate(model):
     #------------------------------------------------------------
 
     x_train_reconstructed = np.load('data/reconstructed/X_kannada_MNIST_x_train_multiple_reconstructed.npy')
-    # x_train_reconstructed = normalizeAndReshape(x_train_reconstructed) # normalization not neccessary because data is already normalized and reshaped
+    # x_train_reconstructed = normalizeAndReshape(x_train_reconstructed) ... normalization not neccessary because data is already normalized and reshaped
     result  = model.evaluate(x_train_reconstructed, y_train_one_hot)
     print("reconstructed training set loss && acc", result)
     dataset_accuracies['reconstructed'] = result[1]
 
     plotPies(dataset_accuracies)
+    plotConfusionMatrix(model, x_train_reconstructed, y_train_one_hot)
 
     print("finish evaluation")
 
+
+def plotConfusionMatrix(model, x, y):
+    y_predict = model.predict(x)
+    y_pred = y_predict.argmax(axis=1)
+    # confusion matrix
+    matrix = confusion_matrix(y.argmax(axis=1), y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=matrix)
+    disp.plot(cmap=plt.cm.Oranges)
+    plt.xticks(rotation=75)
+    plt.title("Confusion Matrix")
+    # plt.savefig("data/confusion_matrix_"+set_title+".png", bbox_inches='tight', pad_inches=0.1)
+    plt.show()
 
 def plotPies(accuracies):
 
@@ -153,8 +167,8 @@ def plotPies(accuracies):
         ax1.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90, colors=colors)
         ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
         plt.title("Accuracy of " + name + " dataset")
-        # plt.show()
-        plt.savefig("data/plots/accuracy_pie_"+name+".png", bbox_inches='tight')
+        plt.show()
+        # plt.savefig("data/plots/accuracy_pie_"+name+".png", bbox_inches='tight')
 
 
 USE_SAFED_EVALUATION_MODEL = True
