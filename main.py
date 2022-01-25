@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 from sklearn.model_selection import ParameterGrid
 
-
 USE_SAVED_MODEL = True
 
 
@@ -18,15 +17,15 @@ def normalizeAndReshape(data):
     data = data.reshape(len(data), 28, 28, 1)
     return data
 
+
 def toCategorical(data):
     return keras.utils.to_categorical(data)
 
 
 def findBestHyperParameters(x_train_dist, x_train_clean, x_val_dist, x_val_clean):
-
     parameters = {
-        'layer_type':  ['dense', 'conv'],
-        'nr_layers':  [2, 3, 4],
+        'layer_type': ['dense', 'conv'],
+        'nr_layers': [2, 3, 4],
         'nr_neurons': [32, 64, 128],
         'loss_func': ['binary_crossentropy', 'mse'],
     }
@@ -46,14 +45,7 @@ def findBestHyperParameters(x_train_dist, x_train_clean, x_val_dist, x_val_clean
         else:
             autoencoder.createConvolutionalModel(nr_layers, loss_func)
 
-        print(nr_layers)
-        print(nr_neurons)
-        print(layer_type)
-        print(loss_func)
-
         history = autoencoder.train(x_train_dist, x_train_clean, x_val_dist, x_val_clean, batch_size=32, epochs=20)
-
-        print(history)
 
         entry = {
             'nr_layers': nr_layers,
@@ -85,7 +77,6 @@ def createAndTrainModel(best_hyperparameters, x_train_dist, x_train_clean):
 
     autoencoder.train(x_train_dist, x_train_clean, None, None, batch_size=32, epochs=20, validation_set=False)
 
-
     return autoencoder
 
 
@@ -94,29 +85,29 @@ def printImg(img, title):
     plt.title(title + str(img.shape))
     plt.show()
 
+
 def createPredictionImages(autoencoder, x, title):
     prediction = predict(autoencoder, x)
     np.save('data/reconstructed/X_kannada_MNIST_' + title + '.npy', prediction)
+
 
 def predict(autoencoder, data):
     return autoencoder.autoencoder.predict(data)
 
 
-
 def plotEvaluation(x_distorted, x_clean, y, x_reconstructed):
-
     # plot side descriptions of the dataset
     plt.figure(figsize=(20, 4))
     plt.subplot(3, 11, 1)
-    plt.text(0,0.5,"Original Data")
+    plt.text(0, 0.5, "Original Data")
     plt.axis('off')
 
     plt.subplot(3, 11, 12)
-    plt.text(0,0.5,"Disturbed Data")
+    plt.text(0, 0.5, "Disturbed Data")
     plt.axis('off')
 
     plt.subplot(3, 11, 23)
-    plt.text(0,0.5,"Reconstructed Data")
+    plt.text(0, 0.5, "Reconstructed Data")
     plt.axis('off')
 
     for i in range(0, 10, 1):
@@ -138,7 +129,6 @@ def plotEvaluation(x_distorted, x_clean, y, x_reconstructed):
 
 
 def main():
-
     # multiple disturbed data set
     x_train_dist_full = np.load('data/distorted/X_kannada_MNIST_train_multipl_distorted.npy')
     x_test_dist = np.load('data/distorted/X_kannada_MNIST_test_multipl_distorted.npy')
@@ -150,58 +140,51 @@ def main():
     x_train_dist_single = normalizeAndReshape(x_train_dist_full)
 
     # clean data set
-    x_train_clean_full = pd.read_csv('data/train.csv').iloc[:, 1:].to_numpy() # clean dataset
-    y_train_clean_full = pd.read_csv('data/train.csv').iloc[:, 0].to_numpy() # label of the image
+    x_train_clean_full = pd.read_csv('data/train.csv').iloc[:, 1:].to_numpy()  # clean dataset
+    y_train_clean_full = pd.read_csv('data/train.csv').iloc[:, 0].to_numpy()  # label of the image
     x_train_clean_full = normalizeAndReshape(x_train_clean_full)
     y_train_clean_full = toCategorical(y_train_clean_full)
 
-    # the test.csv does not contain a label (only the id of an image for kaggle), which means it is useless for evaluation
+    # the test.csv does not contain a label (only the id of an image for kaggle), which means it is useless for
+    # evaluation
     # y_test_clean = pd.read_csv('data/test.csv').iloc[:, 0].to_numpy() # id of image
-    x_test_clean = pd.read_csv('data/Dig-MNIST.csv').iloc[:, 1:].to_numpy() # dataset
-    y_test_clean = pd.read_csv('data/Dig-MNIST.csv').iloc[:, 0].to_numpy() # target
+    x_test_clean = pd.read_csv('data/Dig-MNIST.csv').iloc[:, 1:].to_numpy()  # dataset
+    y_test_clean = pd.read_csv('data/Dig-MNIST.csv').iloc[:, 0].to_numpy()  # target
     x_test_clean = normalizeAndReshape(x_test_clean)
     # y_test_clean = toCategorical(y_test_clean)
 
-
     # "distorted x" should be predicted as "y clean"
     # create validation set
-    x_train_dist, x_val_dist, y_train_clean, y_val_clean = train_test_split(x_train_dist_full, y_train_clean_full, test_size=0.2, random_state=0)
+    x_train_dist, x_val_dist, y_train_clean, y_val_clean = train_test_split(x_train_dist_full, y_train_clean_full,
+                                                                            test_size=0.2, random_state=0)
 
     # normal x should also be predicted to "y clean"
     # normal data
-    x_train_clean, x_val_clean, _ , _ = train_test_split(x_train_clean_full, y_train_clean_full, test_size=0.2,random_state=0)
-                            # we already have this split
-
+    x_train_clean, x_val_clean, _, _ = train_test_split(x_train_clean_full, y_train_clean_full, test_size=0.2,
+                                                        random_state=0)
+    # we already have this split
 
     autoencoder = Autoencoder(neurons=64, activation='relu', input_size=28)
     if USE_SAVED_MODEL:
-       autoencoder.autoencoder = load_model('data/models/autoencoder.h5')
+        autoencoder.autoencoder = load_model('data/models/autoencoder.h5')
 
     else:
 
         # best_hyperparameters = findBestHyperParameters(x_train_dist, x_train_clean, x_val_dist, x_val_clean)
 
         best_hyperparameters = {
-            'layer_type' : 'dense',
-            'nr_layers' : 3,
-            'loss_func' : 'binary_crossentropy'
+            'layer_type': 'dense',
+            'nr_layers': 3,
+            'loss_func': 'binary_crossentropy'
         }
-        print(best_hyperparameters)
-
-        # best combination, but does not look good:
-        # nr_layers 3
-        # nr_neurons 128
-        # layer_type conv
-        # loss_func binary_crossentropy
-
 
         autoencoder = createAndTrainModel(best_hyperparameters, x_train_dist_full, x_train_clean_full)
 
-
-    # x_test_reconstructed = predict(autoencoder, x_test_dist)
-    # plotEvaluation(x_test_dist, x_test_clean, y_test_clean, x_test_reconstructed)
+    x_test_reconstructed = predict(autoencoder, x_test_dist)
+    plotEvaluation(x_test_dist, x_test_clean, y_test_clean, x_test_reconstructed)
     createPredictionImages(autoencoder, x_train_dist_full, "x_train_multiple_reconstructed")
     createPredictionImages(autoencoder, x_train_dist_single, "x_train_single_reconstructed")
+
 
 if __name__ == "__main__":
     main()

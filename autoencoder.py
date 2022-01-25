@@ -1,12 +1,6 @@
 import math
-import numpy as np
-import tensorflow as tf
-import pandas as pd
 import matplotlib.pyplot as plt
 from tensorflow import keras
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.models import load_model
-from sklearn.model_selection import ParameterGrid
 from tensorflow.python.keras.callbacks import EarlyStopping
 
 PLOT = True
@@ -41,8 +35,6 @@ class Autoencoder:
         self.autoencoder.summary()
         self.autoencoder.compile(optimizer='Adam', loss=loss_func, metrics=['accuracy'])
 
-
-
     def createConvolutionalModel(self, nr_layers, loss_func):
         encoder_input = keras.Input(shape=(self.input_size, self.input_size, 1), name='Image Import')
 
@@ -68,49 +60,18 @@ class Autoencoder:
         self.autoencoder.summary()
         self.autoencoder.compile(optimizer='Adam', loss=loss_func, metrics=['accuracy'])
 
-    def createModel(self, layer_type, nr_layers, loss_func):
-
-        # encoded = keras.layers.Conv2D(32, (3, 3), activation=self.activation, padding='same')(encoder_input)
-        # encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
-        # encoded = keras.layers.Conv2D(32, (3, 3), activation=self.activation, padding='same')(encoded)
-        # encoded = keras.layers.MaxPooling2D((2, 2), padding='same')(encoded)
-
-        # decoded = keras.layers.Conv2D(32, (3, 3), activation=self.activation, padding='same')(encoded)
-        # decoded = keras.layers.UpSampling2D((2, 2))(decoded)
-        # decoded = keras.layers.Conv2D(32, (3, 3), activation=self.activation, padding='same')(decoded)
-        # decoded = keras.layers.UpSampling2D((2, 2))(decoded)
-        # decoder_output = keras.layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(decoded)
-        # self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
-
-
-
-        # hidden1 = keras.layers.Flatten()(encoder_input)  # converts from 2d (30x30) to 1d (900)
-        # encoded = keras.layers.Dense(512, activation='relu')(hidden1)
-        # encoded = keras.layers.Dense(512, activation='relu')(encoded)
-        # encoded = keras.layers.Dense(256, activation='relu')(encoded)
-        # encoded = keras.layers.Dense(256, activation='relu')(encoded)
-
-        # encoder_output = keras.layers.Dense(self.neurons, activation=self.activation)(encoded)
-        # self.encoder = keras.Model(encoder_input, encoder_output, name='encoder')  # not sure if we need it really
-
-        # DECODER
-        # decoder_input = keras.layers.Dense(self.full_size, activation='sigmoid')(encoder_output)
-        # decoder_output = keras.layers.Reshape((self.input_size, self.input_size, 1))(decoder_input)
-        # self.autoencoder = keras.Model(encoder_input, decoder_output, name='autoencoder')
-        # self.autoencoder.compile(optimizer='Adam', loss='mse', metrics=['accuracy'])
-        pass
-
-    def train(self, x_train_dist, x_train_clean, x_val_dist, x_val_clean, batch_size, epochs, validation_set = True):
-
+    def train(self, x_train_dist, x_train_clean, x_val_dist, x_val_clean, batch_size, epochs, validation_set=True):
 
         if validation_set:
             early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto')
-            history = self.autoencoder.fit(x_train_dist, x_train_clean, epochs=epochs, batch_size=batch_size, shuffle=True,
-                                           validation_data=(x_val_dist, x_val_clean),callbacks=[early_stopping])
+            history = self.autoencoder.fit(x_train_dist, x_train_clean, epochs=epochs, batch_size=batch_size,
+                                           shuffle=True,
+                                           validation_data=(x_val_dist, x_val_clean), callbacks=[early_stopping])
 
         else:
             early_stopping = EarlyStopping(monitor='loss', min_delta=0, patience=10, verbose=0, mode='auto')
-            history = self.autoencoder.fit(x_train_dist, x_train_clean, epochs=epochs, batch_size=batch_size, shuffle=True,
+            history = self.autoencoder.fit(x_train_dist, x_train_clean, epochs=epochs, batch_size=batch_size,
+                                           shuffle=True,
                                            callbacks=[early_stopping])
         if PLOT:
             plt.plot(history.history['loss'], label='train')
@@ -126,7 +87,6 @@ class Autoencoder:
             plt.title("Accuracy")
             plt.legend()
             plt.show()
-
 
         title = 'data/models/autoencoder.h5'
         self.autoencoder.save(title)
@@ -157,4 +117,3 @@ class Autoencoder:
         plt.imshow(example[0].reshape((size, size)), cmap="gray")
         plt.title("Encoder example " + str(size) + 'x' + str(size))
         plt.show()
-

@@ -2,9 +2,6 @@ import numpy as num
 import pandas as pd
 import matplotlib.pyplot as mat
 import numpy.random as ran
-from sklearn.model_selection import train_test_split
-
-# path = 'C:\\Users\\Felix\\PycharmProjects\\deeplearning\\Kannada_MNIST-master\\data\\output_tensors\\MNIST_format\\'
 
 # x_train = num.load('data/repo-kannada-mnist/X_kannada_MNIST_train.npy')
 # x_test = num.load('data/repo-kannada-mnist/X_kannada_MNIST_test.npy')
@@ -17,9 +14,6 @@ x_test = test_.iloc[:, 1:].to_numpy()
 
 x_train = x_train.reshape(-1, 28, 28)
 x_test = x_test.reshape(-1, 28, 28)
-
-print(x_train.shape)
-print(x_test.shape)
 
 n_train = x_train.shape[0]
 n_test = x_test.shape[0]
